@@ -1,0 +1,181 @@
+{
+  "app_name": "Mapestate",
+  "personality": "1 iOS-Native Clean",
+  "personality_one_liner": "A premium, minimal, map-first real estate experience bridging spatial context with high-end editorial clarity.",
+  "color": {
+    "surface": "#FFFFFF",
+    "onSurface": "#0A192F",
+    "surfaceSecondary": "#F5F7F9",
+    "onSurfaceSecondary": "#0A192F",
+    "surfaceTertiary": "#E2E8F0",
+    "onSurfaceTertiary": "#0A192F",
+    "surfaceInverse": "#0A192F",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#0D9488",
+    "onBrand": "#FFFFFF",
+    "brandPrimary": "#0D9488",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#115E59",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#CCFBF1",
+    "onBrandTertiary": "#115E59",
+    "success": "#10B981",
+    "onSuccess": "#FFFFFF",
+    "warning": "#F59E0B",
+    "onWarning": "#FFFFFF",
+    "error": "#EF4444",
+    "onError": "#FFFFFF",
+    "info": "#3B82F6",
+    "onInfo": "#FFFFFF",
+    "border": "#E2E8F0",
+    "borderStrong": "#CBD5E1",
+    "divider": "#F1F5F9",
+    "muted": "#64748B"
+  },
+  "typography": {
+    "displayFontFamily": "Plus Jakarta Sans",
+    "textFontFamily": "Plus Jakarta Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous vertical breathing room for premium feel. Never use cramped dashboard layouts. Intentional padding around cards.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": 1,
+  "navigation": "bottom_tabs",
+  "icon_set": "Feather",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use over map for floating search bars, filters, FABs, and bottom tabs",
+      "Sticky action bars on the property details screen over scrolling content",
+      "Layer 0 map, Layer 1 glass components to maintain spatial context"
+    ],
+    "dont's": [
+      "Do not use on regular list rows or input fields",
+      "Avoid stacking more than two blur surfaces on one screen"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home (Map Discovery)",
+      "purpose": "Immersive map-first exploration of properties with highly interactive floating controls.",
+      "states": {
+        "loading": "Map loading skeleton or spinner with brand tint",
+        "empty": "No properties found in this area map state",
+        "error": "Failed to load map data with a retry button centered on a glass card"
+      },
+      "layout": "Full-screen interactive map behind all UI. Top safe area: Floating glass search bar with embedded filter icon, followed by horizontal scrollable chips for BUY/RENT and property types. Floating Action Button (FAB) for List View toggle. Bottom: Bottom tabs layered over map (use glass) and `@gorhom/bottom-sheet` docked at a peek state for property highlights when a pin is tapped."
+    },
+    {
+      "name": "Property Details",
+      "purpose": "Comprehensive, progressive disclosure of property details anchored by a high-end imagery hero.",
+      "states": {
+        "loading": "Skeleton UI for hero image and text blocks",
+        "empty": "N/A",
+        "error": "Failed to fetch property details"
+      },
+      "layout": "Hero image gallery at the top with a gradient scrim (transparent to surfaceInverse) over the bottom 30%. Transparent glass header with back button. Below hero: generous padding (xl), Title, Price, auto-layout utility chips (Beds, Area). Sticky action bar at the absolute bottom holding primary CTAs (Call, WhatsApp, Enquiry) anchored via keyboard/scroll view avoiding logic. Map integration section inline."
+    },
+    {
+      "name": "Post Property",
+      "purpose": "A streamlined, step-by-step form to list a property, heavily utilizing map pin-drops.",
+      "states": {
+        "loading": "Submitting state with centered spinner",
+        "empty": "N/A",
+        "error": "Form validation errors displayed gracefully below inputs"
+      },
+      "layout": "Clean single-column scrollable form. Floating labels for inputs. A section allowing users to interact with an inline map to drop a pin. Primary submit button sticky at the bottom inside KeyboardAvoidingView."
+    },
+    {
+      "name": "Favorites & Enquiries",
+      "purpose": "List views of saved and contacted properties.",
+      "states": {
+        "loading": "List skeleton",
+        "empty": "Illustration of an empty room with a calm message ('No saved properties yet') and CTA to 'Explore Map'",
+        "error": "Failed to load list with retry button"
+      },
+      "layout": "Standard iOS-native clean list view. High-quality thumbnail on the left, price and title on the right. Generous vertical spacing (lg) between list items."
+    },
+    {
+      "name": "Profile",
+      "purpose": "User management and account settings.",
+      "states": {
+        "loading": "Spinner",
+        "empty": "N/A",
+        "error": "Failed to load user data"
+      },
+      "layout": "Header with brandTertiary tinted background. Center-aligned user avatar and name. Vertical list of settings rows; each row has a leading Feather icon inside a surfaceSecondary rounded square container."
+    }
+  ],
+  "images": {
+    "property_hero_1": {
+      "url": "https://images.unsplash.com/photo-1768200498972-fd56353d73fc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBtb2Rlcm4lMjB2aWxsYSUyMGV4dGVyaW9yJTIwZGF5bGlnaHR8ZW58MHx8fHwxNzk0MjE0NjMzfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Modern white luxury house against a clear blue sky"
+    },
+    "property_hero_2": {
+      "url": "https://images.unsplash.com/photo-1515263487990-61b07816b324?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MTJ8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhcGFydG1lbnQlMjBidWlsZGluZyUyMGV4dGVyaW9yfGVufDB8fHx8MTc5NDIxNDYzM3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Modern apartment building exterior"
+    },
+    "property_hero_3": {
+      "url": "https://images.unsplash.com/photo-1631679706909-1844bbd07221?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTV8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwbGl2aW5nJTIwcm9vbSUyMGludGVyaW9yJTIwZGVzaWdufGVufDB8fHx8MTc5NDIxNDYzM3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Minimalist living room interior design"
+    },
+    "owner_avatar": {
+      "url": "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0JTIwcmVhbCUyMGVzdGF0ZSUyMGFnZW50fGVufDB8fHx8MTc5NDIxNDYzOHww&ixlib=rb-4.1.0&q=85",
+      "alt": "Professional real estate agent headshot"
+    },
+    "empty_state_favorites": {
+      "url": "https://images.unsplash.com/photo-1597665863042-47e00964d899?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwxfHxlbXB0eSUyMGxpdmluZyUyMHJvb20lMjBtb3ZpbmclMjBib3hlc3xlbnwwfHx8fDE3OTQyMTQ2Mzh8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Empty living room signifying a blank slate"
+    }
+  },
+  "haptics": {
+    "map_pin_tap": "selection",
+    "bottom_sheet_snap": "medium",
+    "primary_button_press": "light",
+    "tab_switch": "selection",
+    "filter_toggle": "light"
+  },
+  "instructions_to_main_agent": [
+    "Strictly use the '1 iOS-Native Clean' personality but apply the user-requested custom color overrides: Pure white backgrounds (#FFFFFF), Dark Navy typography (#0A192F), and Teal accents (#0D9488). Do not default to Apple blue or Material indigo.",
+    "Implement the Home Screen with `react-native-maps`. Ensure the map is the root layer (flex: 1). All controls (Search bar, Filter button, Segmented chips, Bottom Tabs, List view toggle) must float OVER the map using absolute positioning and `expo-blur` glassmorphism to preserve spatial context.",
+    "Use `@gorhom/bottom-sheet` for the property card interaction on the map. It should dock at a peek height when a pin is tapped and expand fluidly.",
+    "Map pins should ideally follow a dual-state pattern: minimal price chips at a wider zoom, expanding into detailed badges on select or zoom-in.",
+    "On the Property Details screen, mandate a gradient scrim (transparent to #0A192F) over the bottom of the hero image. Ensure text rendered on top uses `onSurfaceInverse` (#FFFFFF) for WCAG compliance.",
+    "Place primary CTAs (Call/WhatsApp) in a sticky glass action bar anchored at the bottom of the Property Details viewport, surviving content scroll.",
+    "Use 'Plus Jakarta Sans' for all typography and cap the weight at 500 max. Use font sizes to establish hierarchy, not bold weights.",
+    "For all settings rows or feature lists, place the `Feather` icon inside a `surfaceSecondary` rounded square container (size: 32-40px). Do not leave icons bare.",
+    "Implement haptic feedback natively using the events defined in the haptics block (e.g., snapping the bottom sheet or tapping a map pin)."
+  ]
+}

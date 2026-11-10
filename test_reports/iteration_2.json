@@ -1,0 +1,51 @@
+{
+  "summary": "Iteration 2 – Mapestate approval workflow, admin panel, My Listings, owner chat, saved-search alerts, notifications, reports. Backend: 38/38 pytest pass (26 regression tests, one updated for the new 'pending' post flow, plus 12 new iteration-2 flow tests). They cover approval gating, admin auth (401/403), stats, the pending list with duplicate_count/report_count, reject→edit→pending, approve→owner + saved-search notifications, pause/reactivate rules (400 on pending/rejected, 422 for status=pending), chat get-or-create/400 on own listing/unread counts/mark-read/404 for non-participants, my/stats chats, reports (422 for a bad reason) with remove_listing and dismiss, user verify that cascades to listings, and saved-search CRUD. A separate probe script found 3 medium and 2 low backend issues. Frontend (375x667) end-to-end works fully. Guest bell and bookmark both go to login. Saved search shows the toast and appears in /saved-searches. Owner My Listings shows In review/Awaiting review, editing works, and the detail page shows the status banner and the Edit listing action (no chat). Admin Review shows the duplicate flag, the reject reason box with cancel, and Approve. Buyer gets the bell badge and a 'New match for \"Buy in this area\"' notification that opens the property. The buyer→owner chat works with unread badges both ways and the owner reply is seen by the buyer. Report flow reaches report-done. Admin Reports→Remove listing works and the owner sees 'Needs changes' with the admin note and a notification. Pause/Reactivate toggles Live/Paused. Verify tab, Stats tiles (8) and saved-search delete all work. Main UI bug: the property detail page spins forever when the listing returns 404 (paused/removed/pending), and notifications/chat/favorites can now link to such listings. Deprecated packages detected: none (no expo-av / expo-barcode-scanner / expo-background-fetch).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/conversations, POST /api/favorites/{id}, POST /api/enquiries, POST /api/reports, GET /api/properties/{id}/similar", "issue": "No status check. Any user who knows the id can chat, favorite, enquire or report on pending/paused/rejected listings, and a guest gets 200 from /similar on a pending id. GET /api/favorites also returns paused/rejected listings. Verified with tests/probe_iter2.py.", "priority": "HIGH"},
+      {"endpoint": "POST /api/admin/properties/{id}/approve", "issue": "Not idempotent and does not check the current status. Approving twice sends duplicate saved-search 'New match' notifications and duplicate owner 'Your listing is live' notifications (confirmed: 2 each). Approve also force-reactivates a listing the owner paused (paused→active). It should only allow pending/rejected→active and notify only on that transition.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/conversations/{id}/messages", "issue": "A whitespace-only text ('   ') passes min_length and is then stripped to '', so an empty message is stored (200). Validate after strip()."},
+      {"endpoint": "GET /api/properties/{id}", "issue": "Admin views (including moderation of pending listings) increment the views counter. Only real visitors should count. React-query refetches also count as new views (no per-user dedupe)."},
+      {"endpoint": "PATCH /api/properties/{id}", "issue": "Business check: an owner can edit title/price/address of an already-approved active listing (e.g. price=1) without re-review. Only rejected listings go back to pending. Confirm this is intended."},
+      {"endpoint": "GET /api/my/stats", "issue": "The favorites $lookup scans the whole favorites collection for every call. Match by the owner's property ids first."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "property/[id].tsx:69 `if (isLoading || !prop)`", "issue": "Infinite spinner when the API returns 404 (paused/removed/pending listing viewed by a guest/buyer). Users reach this from notifications, chat-property-link and favorites. Needs a 'Listing no longer available' error state plus a back button. edit-listing/[id].tsx:54 has the same pattern.", "testID": "property-loading", "priority": "MEDIUM"},
+      {"component": "admin.tsx reject confirm", "issue": "Tapping Confirm with an empty reason does nothing and shows no validation message.", "testID": "admin-reject-confirm-{id}", "priority": "LOW"},
+      {"component": "property/[id].tsx owner view", "issue": "The owner still sees Call and WhatsApp buttons (to themselves) on their own listing next to 'Edit listing'.", "testID": "action-call", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Saved searches", "issues": ["Delete is instant with no confirmation or undo."]},
+      {"screen": "Profile", "issues": ["Verification status is never shown. After an admin verifies the user, the profile still shows only the role badge."]},
+      {"screen": "My Listings / Admin / Chat", "issues": ["Listings without photos show a blank grey thumbnail with no placeholder icon."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_mapestate_api.py", "/app/backend/tests/test_mapestate_iter2.py", "/app/tests/probe_iter2.py", "/app/tests/ui_setup_iter2.py", "/app/backend/tests/cleanup_test_data.py", "/app/test_reports/pytest/pytest_iter2.xml"],
+  "action_items": [
+    "Block chat, favorite, enquiry, report and /similar for non-active listings (only allow owner/admin, or return 404). Filter non-active listings out of GET /api/favorites, or mark them unavailable.",
+    "admin approve: only allow pending/rejected→active, and send notifications only on that transition (no duplicates, and don't override an owner's pause).",
+    "property/[id].tsx and edit-listing/[id].tsx: handle isError/404 with a 'not available' state instead of an endless spinner.",
+    "send_message: reject text that is empty after strip() (422).",
+    "Don't count admin/owner views. Optionally dedupe views per user/session.",
+    "Low: inline validation for an empty reject reason; hide Call/WhatsApp on your own listing; confirm before deleting a saved search; show the Verified badge on Profile."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 1511 lines (well over 700). Split it into routers: properties, chat, admin, saved_searches, notifications.",
+    "notify_saved_searches is called on every approve. Combined with the missing status guard this creates duplicate alerts.",
+    "Notification type 'message' exists, but send_message never creates a notification. Chat unread relies on the separate conversations count only (OK, but the type is unused).",
+    "edit-listing: numeric fields with invalid text become NaN, which JSON.stringify turns into null, silently clearing the value."
+  ],
+  "updated_files": ["/app/backend/tests/test_mapestate_api.py (post now expects pending, owner-only view, pause→400)", "/app/backend/tests/test_mapestate_iter2.py (new)", "/app/backend/tests/cleanup_test_data.py (extended to conversations/messages/notifications/saved_searches/reports/sessions/users)", "/app/tests/ui_setup_iter2.py (new)", "/app/tests/probe_iter2.py (new)"],
+  "success_rate": {"backend": "100% of pytest (38/38); 3 issues from extra probes", "frontend": "~95% – all requested flows pass; 1 medium UI bug (404 spinner)"},
+  "seed_data_creation": "Created TEST_ users/listings/chats/reports/saved searches during the run. All were deleted by user id via cleanup_test_data.py. The 88 seed listings and the admin/seed users are untouched. Pre-existing non-test data was not modified: 'Smoke Villa' (paused, open report by Ben Buyer), 'sunil kumar' pending listing, and user test_ui_04a270@example.com (created 09:59, before this run).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest from /app/backend with EXPO_PUBLIC_BACKEND_URL exported (pytest.ini uses xdist --dist loadscope; the TestFlow class in test_mapestate_iter2.py is order-dependent and stays on one worker). The test users' emails are appended to /tmp/iter2_emails.txt; pass them to tests/cleanup_test_data.py. UI login: /login with login-email-input/login-password-input/login-submit-button. Use localStorage.clear() to switch users. The Enquiries tab is reached via get_by_role('tab', name='Enquiries').",
+  "rca_of_issue": "404 spinner: property/[id].tsx renders the loader whenever !prop, and the useQuery error state is ignored. Leaks: start_conversation/add_favorite/create_enquiry/create_report/similar_properties only check that the listing exists, not its status. Duplicate alerts: admin_approve has no status precondition and always calls _notify + notify_saved_searches."
+}

@@ -1,0 +1,53 @@
+{
+  "summary": "Iteration 1 – Mapestate. Backend: 26/26 pytest pass (auth signup/login/me, guest property browse with all filters incl. bbox/near, detail/similar, favorites auth-gating+CRUD, enquiries sent/received (seed owner receives), post/pause/delete/my properties, upload+file fetch). Extra probing found 1 HIGH backend bug: PATCH /api/properties/{id} has no validation, so a bad value gets saved and the record then returns 500 everywhere. Frontend (375x667): guest browse works without login. Map pins render in the iframe, tapping a pin shows the preview card and opens details, BUY/RENT, chips, search, list view and filters all send correct API params. details-favorite/call/whatsapp/enquiry send guests to login, and login-close returns to details. Favorites/Post/Enquiries/Profile tabs show the login prompt with working sign-in/sign-up. Signup as owner returns to the property already logged in. Favorite shows in the Favorites tab, enquiry shows under Enquiries > Sent, posting a property puts a new pin on the map, and sign-out works. 1 HIGH frontend bug: applying filters creates a duplicate Explore screen and drops BUY/RENT, category, search and list/map state. No deprecated Expo packages detected (no expo-av / expo-barcode-scanner / expo-background-fetch).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "PATCH /api/properties/{pid}", "issue": "Body is a raw Dict with no type validation. {\"status\":\"bogus\"} or {\"price\":\"abc\"} is saved to the DB. After that GET /api/properties/{pid} and GET /api/my/properties return 500 (response_model validation) for that owner. Reproduced and verified. Use a PropertyUpdate Pydantic model with Optional fields and Literal status.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "GET /api/properties/{pid}/similar, GET /api/favorites", "issue": "Results skip _sanitize_property_images, so exact lat/lng leaks for hide_exact_location listings (server.py:636, 701)"},
+      {"endpoint": "GET /api/files/{path}", "issue": "?token= accepts any JWT signed with JWT_SECRET, including login session tokens, and the 'p' (path) claim is never checked against the requested path (server.py:472-477)"},
+      {"endpoint": "GET /api/properties/{pid}", "issue": "Paused listings are still viewable by anyone. Views are incremented on every fetch, including the owner's own views and refetches"},
+      {"endpoint": "POST /api/enquiries", "issue": "A user can send an enquiry to their own property"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "filters.tsx apply()", "issue": "router.replace({pathname:'/(tabs)'}) mounts a SECOND Explore screen (2 explore-screen instances in the DOM). User state is lost: with RENT + list view selected, after filter-apply the request is listing_type=buy and the map view shows. Browser back goes to the stale old instance. Fix: keep filters in shared state (context/zustand) or router.back()+setParams / router.dismissTo.", "testID": "filter-apply", "priority": "HIGH"},
+      {"component": "filters.tsx", "issue": "Filters screen never pre-populates active filters because index.tsx:137 pushes '/filters' with no params. Explore shows no active-filter indicator and has no quick clear.", "testID": "filter-button", "priority": "MEDIUM"},
+      {"component": "profile.tsx rows", "issue": "My Listings, Notifications, Verification and Help & Support have no onPress, so tapping does nothing. The backend /api/my/properties exists but has no UI.", "testID": "profile-my-listings", "priority": "MEDIUM"},
+      {"component": "post.tsx submit", "issue": "Form is not reset after a successful publish (the tab stays mounted, so old values remain and can be double-posted). There is no success toast. bathrooms is set to the bedrooms value (post.tsx:100). Any 'buyer' role can post.", "testID": "post-submit", "priority": "MEDIUM"},
+      {"component": "property/[id].tsx sendEnquiry", "issue": "catch {} swallows errors, so the user gets no feedback when an enquiry fails", "testID": "enq-send", "priority": "LOW"},
+      {"component": "property/[id].tsx action-call/whatsapp", "issue": "Builds tel:${owner_phone} / wa.me even when owner_phone is null (e.g. Google-auth owners). Hide or disable these when there is no phone.", "testID": "action-call", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Filters", "issues": ["Max price TextInput overflows past the right edge of the 375px viewport (flex:1 TextInput on web needs minWidth:0)"]},
+      {"screen": "Property details", "issues": ["Header buttons details-back/favorite/share are 40x40 (<44)", "get-directions is 35px tall (<44)", "Listing with no images shows an empty grey hero with no placeholder"]},
+      {"screen": "Explore", "issues": ["Floating view-toggle and locate-me buttons overlap price pins. In list view they float over card images, and locate-me makes no sense in list view.", "Tab bar buttons have no testIDs"]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_mapestate_api.py", "/app/backend/tests/cleanup_test_data.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "HIGH: Add a Pydantic PropertyUpdate model to PATCH /api/properties/{pid} (Literal status, typed fields)",
+    "HIGH: Fix filter apply so the Explore state (listing type, category, search, view mode, map position) is kept and no duplicate Explore screen is created; pre-fill the filters screen with the active filters",
+    "Wire up the Profile rows (My Listings using /api/my/properties, plus the others or remove them)",
+    "Reset the post form and show success feedback after publishing; fix bathrooms=bedrooms; consider role gating",
+    "Apply location sanitization in the similar/favorites endpoints; bind the file token to its path",
+    "Fix filters max-price overflow; make touch targets >=44; add a placeholder image for listings with no photos",
+    "Show an error when enquiry send fails; hide Call/WhatsApp when owner_phone is missing"
+  ],
+  "critical_code_review_comments": [
+    "server.py is 950 lines (>700). Split into routers (auth, properties, favorites, enquiries, uploads, seed).",
+    "PATCH accepts Dict[str, Any] with no validation (see the critical issue)",
+    "Storage calls use sync requests wrapped in run_in_threadpool, which is acceptable"
+  ],
+  "updated_files": ["/app/backend/tests/test_mapestate_api.py", "/app/backend/tests/cleanup_test_data.py"],
+  "success_rate": {"backend": "96% (26/26 planned tests pass; 1 HIGH validation bug found by extra probing)", "frontend": "~90% (all requested flows work except filter-apply state loss)"},
+  "seed_data_creation": "Created TEST users test_3081ed5f@example.com, test_f5d005d8@example.com, test_ui_04a270@example.com (password test1234). Their properties, enquiries and favorites were deleted by owner/user id. User accounts remain. Seed data untouched.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run: export EXPO_PUBLIC_BACKEND_URL=... && pytest /app/backend/tests/test_mapestate_api.py. Tab screens stay mounted, so duplicate testIDs (e.g. login-prompt-signin) exist; click the instance that elementFromPoint says is on top. Map pins: page.frame_locator('iframe[title=\"map\"]').locator('.price-pin'). Enquiries tab defaults to Received; use enq-tab-sent. Clean up with python tests/cleanup_test_data.py <emails>.",
+  "rca_of_issue": "Filter bug: filters.tsx:18 router.replace to '/(tabs)' from a modal stack screen pushes a new (tabs) route instead of returning to the existing one, so ExploreScreen local useState (listingType, category, search, viewMode) resets. PATCH bug: server.py:640 body: Dict[str, Any] plus a filter on PropertyBase.model_fields lets any value type through; the Property response model then fails validation, giving 500."
+}

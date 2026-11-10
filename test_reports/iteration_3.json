@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 3 focused retest of the iteration 2 fixes. Backend: a new test_mapestate_iter3.py (8 tests) covers pending, paused, rejected and unknown listings across chat, favorite, enquiry, report, similar and GET, plus approve transitions with exact notification counts, the whitespace chat message and view counting. All 8 pass, and the full suite (46) passes. Frontend (375x667): unavailable-listing and edit-unavailable states, the owner Manage button, the Profile Verified badge, the guest map pin, preview and details flow, and buyer chat from a listing all work. Only low-priority polish issues remain.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/admin/properties/{id}/approve", "issue": "If an admin rejects a listing that was already live and then approves it again, notify_saved_searches runs a second time. Saved-search users get duplicate 'new match' alerts for the same listing. Consider sending them only on the first activation, e.g. track a first_published_at field."},
+      {"endpoint": "POST /api/admin/properties/{id}/reject", "issue": "There is no status check, so an admin can reject a listing that is already rejected or paused, and a duplicate 'listing_rejected' notification is sent. Low priority."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Property details (owner viewing own pending, paused or rejected listing)", "issue": "The favorite heart (details-favorite) still shows. Tapping it calls POST /api/favorites/{id}, which now returns 404 for non-active listings, so the tap silently fails. Hide it for owners or for non-active listings.", "testID": "details-favorite", "priority": "low"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "property-unavailable", "issues": ["The 'Go back' button (property-unavailable-back) is left-aligned at x=24 while the icon and text above it are centered. Add alignSelf: 'center'."]},
+      {"screen": "property details", "issues": ["A listing with no images shows an empty grey hero box. Add a placeholder image or icon."]},
+      {"screen": "edit-unavailable", "issues": ["Only red error text is shown. Consider a neutral colour plus a back or 'My Listings' button, like property-unavailable."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_mapestate_iter3.py", "/app/backend/tests/test_mapestate_iter2.py", "/app/backend/tests/test_mapestate_api.py", "/app/test_reports/pytest/pytest_results.xml", "/app/test_reports/pytest/pytest_iter3.xml"],
+  "action_items": [
+    "(Low) Hide details-favorite when the viewer is the owner or the listing is not active.",
+    "(Low) Center the property-unavailable-back button.",
+    "(Low) Avoid resending saved-search alerts when a previously live listing is rejected and then approved again. Add a status guard to admin reject."
+  ],
+  "critical_code_review_comments": [
+    "property/[id].tsx: the similar query uses the default retry (3), so it retries 3 times on a 404 for non-active listings. Set retry: false like the main query.",
+    "property/[id].tsx: 'isError && !prop' means a listing that is still in cache and later becomes unavailable keeps showing stale details until the cache is cleared. Acceptable, but checking the error status is more robust.",
+    "send_message checks for whitespace before _get_conv, so a blank message to an unknown conversation returns 422 instead of 404. Harmless."
+  ],
+  "updated_files": ["/app/backend/tests/test_mapestate_iter3.py (new)", "/app/backend/tests/test_mapestate_api.py (any_pid fixture skips TEST_ listings to fix a race between parallel modules; signup emails are logged to /tmp/iter1_emails.txt for cleanup)"],
+  "success_rate": {"backend": "100% (46/46)", "frontend": "100% of retested fixes and regression flows"},
+  "seed_data_creation": "Only TEST_ users and listings were created, and all were deleted by email/user id with tests/cleanup_test_data.py. Seed listings and the admin and seed accounts were untouched. Guest and buyer page views raised the views counter on seed listing prop_0e771a3eef4d by about 3, which is expected app behaviour. Two non-seed listings (prop_5fb1cf9611dd, prop_61e8b35b0b15) and test_3ac44a13, test_42738367 and test_ui_04a270 were not created by this run and were left alone.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest from /app/backend with EXPO_PUBLIC_BACKEND_URL exported. Test user emails are appended to /tmp/iter1_emails.txt, /tmp/iter2_emails.txt and /tmp/iter3_emails.txt; pass them to tests/cleanup_test_data.py. The web map pins are Leaflet markers inside an iframe: page.frame_locator('[data-testid=\"map-view\"] iframe').locator('.leaflet-marker-icon'). Use localStorage.clear() and /login to switch users.",
+  "rca_of_issue": "The original iteration 2 failure in TestEnquiries.test_send_and_received came from the test, not the app. The any_pid fixture took the newest active listing, which could be a TEST_ listing that a parallel module had just approved, so the enquiry went to a test owner instead of the seed agent. Fixed in the fixture."
+}
